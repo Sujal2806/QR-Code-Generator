@@ -14,6 +14,7 @@ def generate_qr():
     data = request.json.get('data')
     fill_color = request.json.get('fill_color', 'black')
     back_color = request.json.get('back_color', 'white')
+    box_size = request.json.get('box_size', 10)
 
     if not data:
         return jsonify({"error": "Missing 'data' in request."}), 400
@@ -21,7 +22,7 @@ def generate_qr():
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
+        box_size=box_size,
         border=4,
     )
     qr.add_data(data)
@@ -55,7 +56,14 @@ st.write("Select QR Code colors:")
 fill_color = st.color_picker("Pick a fill color", "#000000")
 back_color = st.color_picker("Pick a background color", "#FFFFFF")
 
-def generate_qr_streamlit(data, fill_color, back_color):
+# QR code size selection
+st.write("Select QR Code size:")
+box_size = st.slider("Box Size", min_value=1, max_value=20, value=10)
+
+# Text below QR code
+text_below = st.text_input("Text Below QR Code", "")
+
+def generate_qr_streamlit(data, fill_color, back_color, box_size, text_below):
     """Sends the data to the Flask API and fetches the QR code."""
     if not data:
         st.error("Please provide input data.")
@@ -63,10 +71,14 @@ def generate_qr_streamlit(data, fill_color, back_color):
 
     try:
         response = requests.post("http://127.0.0.1:5000/generate_qr", 
-                                 json={"data": data, "fill_color": fill_color, "back_color": back_color})
+                                 json={"data": data, "fill_color": fill_color, "back_color": back_color, "box_size": box_size})
         if response.status_code == 200:
             qr_image = Image.open(BytesIO(response.content))
             st.image(qr_image, caption="Generated QR Code")
+
+            # Display text below QR code if provided
+            if text_below:
+                st.write(f"**{text_below}**")
 
             # Download functionality
             buffer = BytesIO(response.content)
@@ -84,4 +96,4 @@ def generate_qr_streamlit(data, fill_color, back_color):
         st.error(f"Error: {e}")
 
 if st.button("Generate QR Code"):
-    generate_qr_streamlit(user_input, fill_color, back_color)
+    generate_qr_streamlit(user_input, fill_color, back_color, box_size, text_below)
